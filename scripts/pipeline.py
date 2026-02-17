@@ -153,6 +153,8 @@ def filter_movies(df, cache_scope: str):
 
         rating_x10 = min(100, max(0, int(round(imdb_rating * 10))))
 
+        lang = str(row.get("original_language") or "").strip()[:2]
+
         filtered.append({
             "tmdb_id": tmdb_id,
             "title": title,
@@ -161,6 +163,7 @@ def filter_movies(df, cache_scope: str):
             "cache_hash": hash_text(text, cache_scope),
             "imdb_num": imdb_num,
             "rating_x10": rating_x10,
+            "lang": lang,
         })
 
     print(f"Kept {len(filtered)} movies after filtering")
@@ -350,6 +353,8 @@ def write_metadata_binary(movies, output_path):
             f.write(struct.pack("<I", movie["tmdb_id"]))
             f.write(struct.pack("<I", movie["imdb_num"]))
             f.write(struct.pack("<B", movie["rating_x10"]))
+            lang = movie["lang"].encode("ascii", errors="replace")[:2].ljust(2, b'\x00')
+            f.write(lang)
             f.write(struct.pack("<B", len(title)))
             f.write(title)
 

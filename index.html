@@ -39,8 +39,14 @@
       #search-panel.dragging {
         border-color: rgba(255, 245, 204, 0.35);
       }
+      #search-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
       #search {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
         height: 44px;
         padding: 12px 16px 12px 42px;
         border: 0;
@@ -68,6 +74,69 @@
         #search {
           corner-shape: squircle;
         }
+      }
+      #filter-toggle {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: none;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #filter-toggle svg {
+        stroke: rgba(255,255,255,0.45);
+        transition: stroke 0.16s;
+      }
+      #filter-toggle.active-filter svg {
+        stroke: rgba(255, 255, 255, 0.95);
+      }
+      #filter-rows {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.2s, opacity 0.15s;
+      }
+      #filter-rows.open {
+        max-height: 80px;
+        opacity: 1;
+      }
+      #lang-strip {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        margin-top: 8px;
+      }
+      .lang-btn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        border: 0;
+        background: none;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        transition: opacity 0.16s, filter 0.16s;
+      }
+      .lang-btn.off {
+        opacity: 0.25;
+        filter: grayscale(1);
       }
       #rating-filter {
         margin-top: 8px;
@@ -154,14 +223,30 @@
   <body>
     <canvas id="canvas"></canvas>
     <div id="search-panel">
-      <input id="search" type="text" placeholder="A movie like..." autocomplete="off" enterkeyhint="search" />
-      <div id="rating-filter">
-        <div id="rating-strip">
-          <button class="rating-star inactive" type="button" data-rating-x10="50" aria-label="Minimum rating 5.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
-          <button class="rating-star inactive" type="button" data-rating-x10="60" aria-label="Minimum rating 6.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
-          <button class="rating-star inactive" type="button" data-rating-x10="65" aria-label="Minimum rating 6.5"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
-          <button class="rating-star inactive" type="button" data-rating-x10="75" aria-label="Minimum rating 7.5"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
-          <button class="rating-star inactive" type="button" data-rating-x10="80" aria-label="Minimum rating 8.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+      <div id="search-row">
+        <input id="search" type="text" placeholder="A movie like..." autocomplete="off" enterkeyhint="search" />
+        <button id="filter-toggle" type="button" aria-label="Toggle filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+        </button>
+      </div>
+      <div id="filter-rows">
+        <div id="lang-filter">
+          <div id="lang-strip">
+            <button class="lang-btn" type="button" data-group="0">🇺🇸</button>
+            <button class="lang-btn" type="button" data-group="1">🇮🇳</button>
+            <button class="lang-btn" type="button" data-group="2">🇫🇷</button>
+            <button class="lang-btn" type="button" data-group="3">🇯🇵</button>
+            <button class="lang-btn" type="button" data-group="4">🌍</button>
+          </div>
+        </div>
+        <div id="rating-filter">
+          <div id="rating-strip">
+            <button class="rating-star inactive" type="button" data-rating-x10="50" aria-label="Minimum rating 5.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+            <button class="rating-star inactive" type="button" data-rating-x10="60" aria-label="Minimum rating 6.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+            <button class="rating-star inactive" type="button" data-rating-x10="65" aria-label="Minimum rating 6.5"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+            <button class="rating-star inactive" type="button" data-rating-x10="75" aria-label="Minimum rating 7.5"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+            <button class="rating-star inactive" type="button" data-rating-x10="80" aria-label="Minimum rating 8.0"><svg viewBox="0 0 16 16" aria-hidden="true"><path /></svg></button>
+          </div>
         </div>
       </div>
       <div id="search-hint" aria-live="polite"></div>

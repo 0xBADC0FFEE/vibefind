@@ -11,6 +11,7 @@ import type { WaveState, OldCellData } from './canvas/wave.ts'
 import { createAnimation, animateViewport } from './canvas/animation.ts'
 import { createDebugOverlay, type DebugOverlay } from './debug/overlay.ts'
 import type { TitlesIndex } from './engine/titles.ts'
+import { LANG_GROUP_COUNT } from './engine/titles.ts'
 import { TOP_K, buildGenerationTarget, generateMovie } from './engine/generator.ts'
 import { calcMotionDiversityMetrics } from './engine/motion-profile.ts'
 import { buildRatingMorphPath, clampRatingX10 } from './ui/rating-morph.ts'
@@ -79,6 +80,9 @@ const ratingStars = Array.from(
   ratingStrip.querySelectorAll<HTMLButtonElement>('.rating-star'),
 )
 const searchHint = document.getElementById('search-hint') as HTMLDivElement
+const filterToggle = document.getElementById('filter-toggle') as HTMLButtonElement
+const filterRows = document.getElementById('filter-rows') as HTMLDivElement
+const langBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.lang-btn'))
 
 function computeVisibleCenterArea(pad = 0): { top: number; bottom: number; centerY: number } {
   const vv = window.visualViewport
@@ -182,6 +186,8 @@ let ratingReplaceQueue: string[] = []
 let hintTimer = 0
 let isDraggingFilter = false
 let trackpadPanEnabled = false
+let langEnabled = new Uint8Array(LANG_GROUP_COUNT).fill(1)
+let filtersVisible = false
 const filterSwapFx = new Map<string, FilterSwapFxEntry>()
 const allowAll = (_tmdbId: number): boolean => true
 let lastEvictSig = ''
@@ -200,7 +206,12 @@ function ratingForTmdb(tmdbId: number): number | null {
 
 function isTmdbAllowed(tmdbId: number): boolean {
   const rating = ratingForTmdb(tmdbId)
-  return rating == null || rating >= minRatingX10
+  if (rating != null && rating < minRatingX10) return false
+  if (titlesIndex) {
+    const idx = titlesIndex.idToIdx.get(tmdbId)
+    if (idx !== undefined && !langEnabled[titlesIndex.langGroups[idx]]) return false
+  }
+  return true
 }
 
 function rebuildActiveIndex() {
@@ -353,6 +364,12 @@ function hasVisibleSwapFx(): boolean {
   return false
 }
 
+function updateFilterToggleIcon() {
+  const anyLangOff = langEnabled.some((v) => !v)
+  const ratingAboveMin = minRatingX10 > RATING_MIN_X10
+  filterToggle.classList.toggle('active-filter', anyLangOff || ratingAboveMin)
+}
+
 function updateRatingUI() {
   for (let i = 0; i < ratingStars.length; i++) {
     const star = ratingStars[i]
@@ -361,6 +378,24 @@ function updateRatingUI() {
     star.classList.toggle('active', active)
     star.classList.toggle('inactive', !active)
   }
+  updateFilterToggleIcon()
+}
+
+function updateLangUI() {
+  for (const btn of langBtns) {
+    const g = Number(btn.dataset.group)
+    btn.classList.toggle('off', !langEnabled[g])
+  }
+  updateFilterToggleIcon()
+}
+
+function applyLangFilter() {
+  updateLangUI()
+  rebuildActiveIndex()
+  syncGenerationWorkerIndex()
+  enforceMinRating()
+  const q = searchInput.value.trim()
+  if (q) handleSearch(q)
 }
 
 function showHint(text: string) {
@@ -826,7 +861,7 @@ function handleSearch(query: string) {
   const normalized = query.trim()
   if (!searchReady || !normalized) return
   if (normalized.startsWith('/')) return
-  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10 })
+  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, langEnabled })
 }
 
 /** Handle worker responses */
@@ -1021,6 +1056,67 @@ function setupRatingFilter() {
 
   searchPanel.addEventListener('pointerup', finishDrag)
   searchPanel.addEventListener('pointercancel', finishDrag)
+}
+
+function setupLangFilter() {
+  let soloGroup = -1
+  let longPressTimer = 0
+
+  for (const btn of langBtns) {
+    const g = Number(btn.dataset.group)
+
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault()
+      longPressTimer = window.setTimeout(() => {
+        longPressTimer = 0
+        // Long-press: solo/unsolo
+        if (soloGroup === g) {
+          // Unsolo: re-enable all
+          langEnabled.fill(1)
+          soloGroup = -1
+        } else {
+          // Solo: only this group
+          langEnabled.fill(0)
+          langEnabled[g] = 1
+          soloGroup = g
+        }
+        applyLangFilter()
+      }, 500)
+    })
+
+    btn.addEventListener('pointerup', () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer)
+        longPressTimer = 0
+        // Short tap: toggle
+        soloGroup = -1
+        langEnabled[g] = langEnabled[g] ? 0 : 1
+        // Prevent all-off
+        if (langEnabled.every((v) => !v)) {
+          langEnabled[g] = 1
+          return
+        }
+        applyLangFilter()
+      }
+    })
+
+    btn.addEventListener('pointercancel', () => {
+      clearTimeout(longPressTimer)
+      longPressTimer = 0
+    })
+
+    btn.addEventListener('contextmenu', (e) => e.preventDefault())
+  }
+}
+
+function setupFilterToggle() {
+  filterToggle.addEventListener('pointerdown', (e) => {
+    e.preventDefault() // prevent blurring search input
+  })
+  filterToggle.addEventListener('click', () => {
+    filtersVisible = !filtersVisible
+    filterRows.classList.toggle('open', filtersVisible)
+  })
 }
 
 function getImdbLinkAtScreen(sx: number, sy: number): string | null {
@@ -1256,6 +1352,8 @@ async function init() {
 
   setupSearch()
   setupRatingFilter()
+  setupLangFilter()
+  setupFilterToggle()
   scheduleRender()
 }
 

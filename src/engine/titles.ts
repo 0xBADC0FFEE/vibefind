@@ -1,8 +1,26 @@
+export const LANG_GROUP_EN = 0
+export const LANG_GROUP_IN = 1
+export const LANG_GROUP_FR = 2
+export const LANG_GROUP_JA = 3
+export const LANG_GROUP_OTHER = 4
+export const LANG_GROUP_COUNT = 5
+
+export const INDIAN_LANGS = new Set(['hi', 'te', 'ta', 'ml', 'kn', 'bn', 'mr', 'pa'])
+
+export function langToGroup(code: string): number {
+  if (code === 'en') return LANG_GROUP_EN
+  if (INDIAN_LANGS.has(code)) return LANG_GROUP_IN
+  if (code === 'fr') return LANG_GROUP_FR
+  if (code === 'ja') return LANG_GROUP_JA
+  return LANG_GROUP_OTHER
+}
+
 export interface TitlesIndex {
   titles: string[]
   tmdbIds: Uint32Array
   imdbNums: Uint32Array
   ratings: Uint8Array  // IMDb rating × 10
+  langGroups: Uint8Array  // group IDs 0-4
   idToIdx: Map<number, number>  // tmdbId → index in titles/tmdbIds
 }
 
@@ -13,6 +31,7 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
   const ids: number[] = []
   const imdbNumsArr: number[] = []
   const ratingsArr: number[] = []
+  const langGroupsArr: number[] = []
   const idToIdx = new Map<number, number>()
   let offset = 4
 
@@ -26,6 +45,15 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
 
     const rating = view.getUint8(offset)
     offset += 1
+
+    // 2-byte lang code
+    const langB0 = view.getUint8(offset)
+    const langB1 = view.getUint8(offset + 1)
+    offset += 2
+    let langCode = ''
+    if (langB0) langCode += String.fromCharCode(langB0)
+    if (langB1) langCode += String.fromCharCode(langB1)
+    langGroupsArr.push(langToGroup(langCode))
 
     const titleLen = view.getUint8(offset)
     offset += 1
@@ -45,12 +73,13 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
     tmdbIds: new Uint32Array(ids),
     imdbNums: new Uint32Array(imdbNumsArr),
     ratings: new Uint8Array(ratingsArr),
+    langGroups: new Uint8Array(langGroupsArr),
     idToIdx,
   }
 }
 
 /** Find best match: word-level substring first, then word-level fuzzy. Returns tmdbId or null. */
-export function searchBest(idx: TitlesIndex, query: string, minRatingX10 = 50): number | null {
+export function searchBest(idx: TitlesIndex, query: string, minRatingX10 = 50, langEnabled?: Uint8Array): number | null {
   if (!query) return null
   const qWords = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (!qWords.length) return null
@@ -59,6 +88,7 @@ export function searchBest(idx: TitlesIndex, query: string, minRatingX10 = 50): 
   let bestSub: { i: number; len: number } | null = null
   for (let i = 0; i < idx.titles.length; i++) {
     if (idx.ratings[i] < minRatingX10) continue
+    if (langEnabled && !langEnabled[idx.langGroups[i]]) continue
     const t = idx.titles[i].toLowerCase()
     let allMatch = true
     for (const w of qWords) {
@@ -76,6 +106,7 @@ export function searchBest(idx: TitlesIndex, query: string, minRatingX10 = 50): 
   let bestIdx = -1
   for (let i = 0; i < idx.titles.length; i++) {
     if (idx.ratings[i] < minRatingX10) continue
+    if (langEnabled && !langEnabled[idx.langGroups[i]]) continue
     const tWords = idx.titles[i].toLowerCase().split(/\s+/)
     let score = 0
     for (const qw of qWords) {
