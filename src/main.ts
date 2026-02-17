@@ -1187,11 +1187,6 @@ function getImdbLinkAtScreen(sx: number, sy: number): string | null {
   return `https://www.imdb.com/title/tt${String(imdbNum).padStart(7, '0')}/`
 }
 
-function isStandaloneMode(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || (window.navigator as any).standalone === true
-}
-
 function openMovieLink(sx: number, sy: number, tap?: TapIntent) {
   if (suppressNextTap) { suppressNextTap = false; return }
   if (searchMode) return
@@ -1202,10 +1197,6 @@ function openMovieLink(sx: number, sy: number, tap?: TapIntent) {
     const win = window.open(url, '_blank', 'noopener,noreferrer')
     win?.blur()
     window.focus()
-    return
-  }
-  if (isStandaloneMode()) {
-    window.location.href = url
     return
   }
   window.open(url, '_blank')
