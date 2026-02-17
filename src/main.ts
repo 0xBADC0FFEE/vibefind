@@ -5,7 +5,7 @@ import type { FilterSwapFxEntry } from './canvas/renderer.ts'
 import { createGrid, fillRange, evictOutside, clearGrid, setCell } from './engine/grid.ts'
 import { generateMockIndex, parseEmbeddings } from './engine/embeddings.ts'
 import type { EmbeddingsIndex, MovieEntry } from './engine/embeddings.ts'
-import { setOnLoad, setMotionProfile, evictImages, clearAllImages, stash, restore, pickSize, load as loadPoster } from './canvas/poster-loader.ts'
+import { setOnLoad, setMotionProfile, evictImages, clearAllImages, unstickLoader, stash, restore, pickSize, load as loadPoster } from './canvas/poster-loader.ts'
 import { startWave, isWaveDone } from './canvas/wave.ts'
 import type { WaveState, OldCellData } from './canvas/wave.ts'
 import { createAnimation, animateViewport } from './canvas/animation.ts'
@@ -1136,6 +1136,14 @@ async function init() {
     window.visualViewport.addEventListener('resize', onVisualViewportChange)
     window.visualViewport.addEventListener('scroll', onVisualViewportChange)
   }
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      unstickLoader()
+      lastEvictSig = ''
+      lastPreloadSig = ''
+      scheduleRender()
+    }
+  })
 
   index = await loadEmbeddings()
   movieByTmdbId = new Map(index.movies.map((m) => [m.tmdbId, m]))

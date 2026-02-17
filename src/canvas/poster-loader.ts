@@ -127,4 +127,18 @@ export function clearAllImages() {
   store.clear()
   queue.length = 0
   queued.clear()
+  inFlight = 0
+}
+
+/** Reset loader state after bfcache restore, keeping completed images */
+export function unstickLoader() {
+  inFlight = 0
+  queue.length = 0
+  queued.clear()
+  for (const [cellKey, cell] of store) {
+    for (const [size, img] of cell) {
+      if (!img.complete || img.naturalWidth === 0) cell.delete(size)
+    }
+    if (cell.size === 0) store.delete(cellKey)
+  }
 }
