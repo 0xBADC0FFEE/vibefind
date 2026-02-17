@@ -194,20 +194,6 @@
         background: rgba(173, 178, 188, 0.95);
         border: none;
       }
-      #year-filter.off #year-slider::-webkit-slider-thumb {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-      #year-filter.off #year-slider::-moz-range-thumb {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-      #year-filter.off .year-emoji {
-        opacity: 0.35;
-        filter: grayscale(1);
-      }
       #rating-filter {
         margin-top: 8px;
         display: flex;
@@ -310,7 +296,7 @@
             <button class="lang-btn" type="button" data-group="5">🌍</button>
           </div>
         </div>
-        <div id="year-filter" class="off">
+        <div id="year-filter">
           <span class="year-emoji">🦣</span>
           <input id="year-slider" type="range" min="0" max="10" step="1" value="5" />
           <span class="year-emoji">📱</span>

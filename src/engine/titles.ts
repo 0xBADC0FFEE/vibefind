@@ -23,8 +23,22 @@ export function langToGroup(code: string): number {
 }
 
 export const YEAR_SLIDER_STEPS = 11
-const currentDecade = Math.floor(new Date().getFullYear() / 10) * 10
-const DECADE_STARTS = [0, ...Array.from({ length: YEAR_SLIDER_STEPS - 1 }, (_, i) => currentDecade - (YEAR_SLIDER_STEPS - 2 - i) * 10)]
+// Bidirectional cutoff: left=older-only, center=all, right=newer-only
+// Dynamic from current year so bounds stay relevant each year
+const Y = new Date().getFullYear()
+const YEAR_BOUNDS: [number, number][] = [
+  [0, Y - 96],   // 0: classics only
+  [0, Y - 46],   // 1
+  [0, Y - 26],   // 2
+  [0, Y - 8],    // 3
+  [0, Y - 3],    // 4
+  [0, 9999],     // 5: ALL (default)
+  [Y - 46, 9999], // 6
+  [Y - 26, 9999], // 7
+  [Y - 8, 9999],  // 8
+  [Y - 3, 9999],  // 9
+  [Y - 1, 9999],   // 10: last full year+
+]
 
 export interface TitlesIndex {
   titles: string[]
@@ -95,24 +109,19 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
     ratings: new Uint8Array(ratingsArr),
     langGroups: new Uint8Array(langGroupsArr),
     years,
-    yearBounds: computeYearBounds(years),
+    yearBounds: computeYearBounds(),
     idToIdx,
   }
 }
 
-function computeYearBounds(_years?: Uint16Array): [number, number][] {
-  const bounds: [number, number][] = DECADE_STARTS.map((start, i) => {
-    const next = DECADE_STARTS[i + 1]
-    return next != null ? [start, next - 1] : [start, 9999]
-  }) as [number, number][]
-  console.debug('[year-filter] bounds:', bounds.map((b, i) => `${i}:${b[0]}-${b[1]}`).join(' '))
-  return bounds
+function computeYearBounds(): [number, number][] {
+  return YEAR_BOUNDS
 }
 
 export interface SearchFilters {
   minRatingX10?: number
   langEnabled?: Uint8Array
-  yearBounds?: [number, number] | null  // [min, max] from slider, or null = no filter
+  yearBounds?: [number, number]  // [min, max] from slider
 }
 
 /** Extract 4-digit year (1900-2099) from query, return [titleQuery, year|null] */

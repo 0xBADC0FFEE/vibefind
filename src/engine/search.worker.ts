@@ -12,11 +12,11 @@ self.onmessage = (e: MessageEvent) => {
   } else if (type === 'search') {
     if (!idx) return
     const langEnabled = e.data.langEnabled as Uint8Array | undefined
-    const yearBounds = e.data.yearBounds as [number, number] | null | undefined
+    const yearBounds = e.data.yearBounds as [number, number] | undefined
     const tmdbId = searchBest(idx, e.data.query as string, {
       minRatingX10: e.data.minRatingX10 as number,
       langEnabled,
-      yearBounds: yearBounds ?? null,
+      yearBounds,
     })
     self.postMessage({ type: 'result', seq: e.data.seq, tmdbId })
   }

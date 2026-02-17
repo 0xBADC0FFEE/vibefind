@@ -17,7 +17,7 @@ Infinite 2D canvas of movie posters. No lists, no categories. You pan around, an
 4. Random posters sprinkled in → create new exploration paths
 5. Type to search → center poster swaps, neighbors regenerate
 6. Set min rating (5.0–8.0) → visible low-rated posters replaced, new generation stays above threshold
-7. Year slider (🦣→📱) → decade-based filter (pre-1930, 1930s, …, 2020s)
+7. Year slider (🦣→📱) → bidirectional filter (older ← all → newer), dynamic bounds from current year
 8. Language toggles (🇺🇸🇮🇳🇪🇺🇯🇵🇰🇷🌍) → filter by language group, all on by default
 9. Search with year ("matrix 1999") → exact year match
 10. Tap a poster → opens IMDB page

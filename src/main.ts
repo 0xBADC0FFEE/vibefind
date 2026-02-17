@@ -83,7 +83,6 @@ const searchHint = document.getElementById('search-hint') as HTMLDivElement
 const filterToggle = document.getElementById('filter-toggle') as HTMLButtonElement
 const filterRows = document.getElementById('filter-rows') as HTMLDivElement
 const langBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.lang-btn'))
-const yearFilter = document.getElementById('year-filter') as HTMLDivElement
 const yearSlider = document.getElementById('year-slider') as HTMLInputElement
 
 function computeVisibleCenterArea(pad = 0): { top: number; bottom: number; centerY: number } {
@@ -189,7 +188,7 @@ let hintTimer = 0
 let isDraggingFilter = false
 let trackpadPanEnabled = false
 let langEnabled = new Uint8Array(LANG_GROUP_COUNT).fill(1)
-let yearSliderPos: number | null = null  // null = off, 0-10 = position
+let yearSliderPos = 5  // 0-10, center (5) = all years
 let filtersVisible = false
 const filterSwapFx = new Map<string, FilterSwapFxEntry>()
 const allowAll = (_tmdbId: number): boolean => true
@@ -214,11 +213,9 @@ function isTmdbAllowed(tmdbId: number): boolean {
     const idx = titlesIndex.idToIdx.get(tmdbId)
     if (idx !== undefined) {
       if (!langEnabled[titlesIndex.langGroups[idx]]) return false
-      if (yearSliderPos !== null) {
-        const [minY, maxY] = titlesIndex.yearBounds[yearSliderPos]
-        const y = titlesIndex.years[idx]
-        if (y < minY || y > maxY) return false
-      }
+      const [minY, maxY] = titlesIndex.yearBounds[yearSliderPos]
+      const y = titlesIndex.years[idx]
+      if (y < minY || y > maxY) return false
     }
   }
   return true
@@ -377,7 +374,7 @@ function hasVisibleSwapFx(): boolean {
 function updateFilterToggleIcon() {
   const anyLangOff = langEnabled.some((v) => !v)
   const ratingAboveMin = minRatingX10 > RATING_MIN_X10
-  const yearActive = yearSliderPos !== null
+  const yearActive = yearSliderPos !== 5
   filterToggle.classList.toggle('active-filter', anyLangOff || ratingAboveMin || yearActive)
 }
 
@@ -872,7 +869,7 @@ function handleSearch(query: string) {
   const normalized = query.trim()
   if (!searchReady || !normalized) return
   if (normalized.startsWith('/')) return
-  const yearBounds = yearSliderPos !== null && titlesIndex
+  const yearBounds = titlesIndex
     ? titlesIndex.yearBounds[yearSliderPos]
     : null
   searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, langEnabled, yearBounds })
@@ -1123,11 +1120,10 @@ function setupLangFilter() {
   }
 }
 
-function setYearSliderPos(pos: number | null) {
+function setYearSliderPos(pos: number) {
   if (pos === yearSliderPos) return
   yearSliderPos = pos
-  yearFilter.classList.toggle('off', pos === null)
-  if (pos !== null) yearSlider.value = String(pos)
+  yearSlider.value = String(pos)
   updateFilterToggleIcon()
   rebuildActiveIndex()
   syncGenerationWorkerIndex()
@@ -1137,29 +1133,8 @@ function setYearSliderPos(pos: number | null) {
 }
 
 function setupYearFilter() {
-  let dragging = false
-  let justEnabled = false
-
   yearSlider.addEventListener('input', () => {
-    dragging = true
     setYearSliderPos(Number(yearSlider.value))
-  })
-
-  yearSlider.addEventListener('pointerdown', () => {
-    dragging = false
-    if (yearSliderPos === null) {
-      setYearSliderPos(Number(yearSlider.value))
-      justEnabled = true
-    }
-  })
-
-  yearSlider.addEventListener('pointerup', () => {
-    if (justEnabled) { justEnabled = false; dragging = false; return }
-    if (!dragging && yearSliderPos !== null) {
-      const currentVal = Number(yearSlider.value)
-      if (currentVal === yearSliderPos) setYearSliderPos(null)
-    }
-    dragging = false
   })
 }
 

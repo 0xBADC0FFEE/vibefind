@@ -45,7 +45,7 @@ All on by default. Tap to toggle off/on. Disabled groups are excluded from gener
 
 ## Year filter
 
-Slider with 11 positions (🦣 oldest → 📱 newest). Off by default. Each position covers one decade (pre-1930, 1930s, …, 2020s). Tap track to enable, tap active thumb to disable.
+Bidirectional slider with 11 positions (🦣 oldest → 📱 newest). Center = all films (default). Left side limits to older films (≤1930 at max), right side limits to newer films (≥last full year at max). Bounds are dynamic from current year.
 
 Type to search — fuzzy title matching runs in a Web Worker (`metadata.bin`, ~0.5 MB). Include a 4-digit year (e.g. "matrix 1999") for exact year match. Tap a poster to open its IMDB page. Center poster swaps instantly, neighbors regenerate after a short delay.
 
