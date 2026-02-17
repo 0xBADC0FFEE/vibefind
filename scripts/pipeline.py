@@ -16,10 +16,57 @@ from pathlib import Path
 import numpy as np
 import requests
 
+# Country→lang-group mappings (mirrors titles.ts groups)
+ENGLISH_COUNTRIES = {
+    "United States of America", "United Kingdom", "Australia", "Canada",
+    "New Zealand", "Ireland", "South Africa",
+}
+INDIAN_COUNTRIES = {"India", "Bangladesh", "Sri Lanka", "Nepal"}
+EUROPEAN_COUNTRIES = {
+    "France", "Germany", "Spain", "Italy", "Portugal", "Netherlands",
+    "Sweden", "Denmark", "Norway", "Finland", "Poland", "Czech Republic",
+    "Romania", "Hungary", "Greece", "Turkey", "Ukraine", "Bulgaria",
+    "Croatia", "Slovakia", "Slovenia", "Lithuania", "Latvia", "Estonia",
+    "Belgium", "Austria", "Switzerland",
+}
+JAPANESE_COUNTRIES = {"Japan"}
+KOREAN_COUNTRIES = {"South Korea"}
+
+COUNTRY_GROUP_MAP = {
+    "indian": (INDIAN_COUNTRIES, "hi"),
+    "european": (EUROPEAN_COUNTRIES, "fr"),
+    "japanese": (JAPANESE_COUNTRIES, "ja"),
+    "korean": (KOREAN_COUNTRIES, "ko"),
+}
+
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "nomic-embed-text-v2-moe"
 BATCH_SIZE = 64
 CACHE_PATH = Path(__file__).parent / "embedding_cache.npz"
+
+
+def infer_lang_from_countries(lang: str, production_countries_str) -> str:
+    """Fix misclassified en films using production_countries as fallback."""
+    if lang != "en":
+        return lang
+    import pandas as pd
+    if not isinstance(production_countries_str, str) or pd.isna(production_countries_str):
+        return lang
+    countries = [c.strip() for c in production_countries_str.split(",") if c.strip()]
+    if not countries:
+        return lang
+    if any(c in ENGLISH_COUNTRIES for c in countries):
+        return "en"
+    groups = set()
+    for c in countries:
+        for name, (country_set, _) in COUNTRY_GROUP_MAP.items():
+            if c in country_set:
+                groups.add(name)
+                break
+    if len(groups) == 1:
+        _, rep_lang = COUNTRY_GROUP_MAP[groups.pop()]
+        return rep_lang
+    return "en"
 
 
 def parse_args():
@@ -160,6 +207,7 @@ def filter_movies(df, cache_scope: str):
         rating_x10 = min(100, max(0, int(round(imdb_rating * 10))))
 
         lang = str(row.get("original_language") or "").strip()[:2]
+        lang = infer_lang_from_countries(lang, row.get("production_countries"))
 
         release_date = str(row.get("release_date") or "").strip()
         year = 0
