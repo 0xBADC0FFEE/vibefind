@@ -35,7 +35,19 @@ Search panel has a minimum IMDb-rating slider (5.0–8.0). It does two things:
 
 Similarity algorithm itself stays same (neighbor blend + gradient + noise + top-K pick).
 
-Type to search — fuzzy title matching runs in a Web Worker (`metadata.bin`, ~0.5 MB). Tap a poster to open its IMDB page. Center poster swaps instantly, neighbors regenerate after a short delay.
+## Language filter
+
+Six toggle buttons filter the movie pool by language group:
+
+| 🇺🇸 English | 🇮🇳 Indian | 🇪🇺 European | 🇯🇵 Japanese | 🇰🇷 Korean | 🌍 Other |
+
+All on by default. Tap to toggle off/on. Disabled groups are excluded from generation and visible tiles are replaced. Works alongside rating and year filters.
+
+## Year filter
+
+Slider with 11 positions (🦣 oldest → 📱 newest). Off by default. Each position covers one decade (pre-1930, 1930s, …, 2020s). Tap track to enable, tap active thumb to disable.
+
+Type to search — fuzzy title matching runs in a Web Worker (`metadata.bin`, ~0.5 MB). Include a 4-digit year (e.g. "matrix 1999") for exact year match. Tap a poster to open its IMDB page. Center poster swaps instantly, neighbors regenerate after a short delay.
 
 ## Quick start (mock data)
 
@@ -114,7 +126,7 @@ src/
     generator.ts         — similarity + random algorithm
     embeddings.ts        — .bin parser, brute-force search
     search.worker.ts     — fuzzy title search (Web Worker)
-    titles.ts            — metadata.bin parser (titles, IMDB IDs, ratings)
+    titles.ts            — metadata.bin parser (titles, IMDB IDs, ratings, years)
   debug/
     overlay.ts             — FPS/viewport/grid debug HUD (2-finger double-tap)
   canvas/

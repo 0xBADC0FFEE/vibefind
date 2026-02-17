@@ -17,8 +17,11 @@ Infinite 2D canvas of movie posters. No lists, no categories. You pan around, an
 4. Random posters sprinkled in → create new exploration paths
 5. Type to search → center poster swaps, neighbors regenerate
 6. Set min rating (5.0–8.0) → visible low-rated posters replaced, new generation stays above threshold
-7. Tap a poster → opens IMDB page
-8. That's it. No accounts, no watchlists (for now)
+7. Year slider (🦣→📱) → decade-based filter (pre-1930, 1930s, …, 2020s)
+8. Language toggles (🇺🇸🇮🇳🇪🇺🇯🇵🇰🇷🌍) → filter by language group, all on by default
+9. Search with year ("matrix 1999") → exact year match
+10. Tap a poster → opens IMDB page
+11. That's it. No accounts, no watchlists (for now)
 
 ## How Similarity Works
 
@@ -78,7 +81,8 @@ PWA. Works on any phone or desktop browser. Installable to home screen.
 ## Future (maybe)
 
 - [ ] Tap-and-hold to "anchor" a movie — nearby tiles recalculate to be even more similar
-- [ ] Genre/decade/country filters that bias the random injection
+- [x] Year/era filter (decade slider)
+- [x] Language group filter (🇺🇸🇮🇳🇪🇺🇯🇵🇰🇷🌍 toggles)
 - [ ] Personal watchlist (localStorage)
 - [ ] "Surprise me" button — teleport to random canvas region
 - [ ] Collaborative mode — see other people's cursors exploring the same canvas

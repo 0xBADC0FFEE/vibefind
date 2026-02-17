@@ -83,6 +83,8 @@ const searchHint = document.getElementById('search-hint') as HTMLDivElement
 const filterToggle = document.getElementById('filter-toggle') as HTMLButtonElement
 const filterRows = document.getElementById('filter-rows') as HTMLDivElement
 const langBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.lang-btn'))
+const yearFilter = document.getElementById('year-filter') as HTMLDivElement
+const yearSlider = document.getElementById('year-slider') as HTMLInputElement
 
 function computeVisibleCenterArea(pad = 0): { top: number; bottom: number; centerY: number } {
   const vv = window.visualViewport
@@ -187,6 +189,7 @@ let hintTimer = 0
 let isDraggingFilter = false
 let trackpadPanEnabled = false
 let langEnabled = new Uint8Array(LANG_GROUP_COUNT).fill(1)
+let yearSliderPos: number | null = null  // null = off, 0-10 = position
 let filtersVisible = false
 const filterSwapFx = new Map<string, FilterSwapFxEntry>()
 const allowAll = (_tmdbId: number): boolean => true
@@ -209,7 +212,14 @@ function isTmdbAllowed(tmdbId: number): boolean {
   if (rating != null && rating < minRatingX10) return false
   if (titlesIndex) {
     const idx = titlesIndex.idToIdx.get(tmdbId)
-    if (idx !== undefined && !langEnabled[titlesIndex.langGroups[idx]]) return false
+    if (idx !== undefined) {
+      if (!langEnabled[titlesIndex.langGroups[idx]]) return false
+      if (yearSliderPos !== null) {
+        const [minY, maxY] = titlesIndex.yearBounds[yearSliderPos]
+        const y = titlesIndex.years[idx]
+        if (y < minY || y > maxY) return false
+      }
+    }
   }
   return true
 }
@@ -367,7 +377,8 @@ function hasVisibleSwapFx(): boolean {
 function updateFilterToggleIcon() {
   const anyLangOff = langEnabled.some((v) => !v)
   const ratingAboveMin = minRatingX10 > RATING_MIN_X10
-  filterToggle.classList.toggle('active-filter', anyLangOff || ratingAboveMin)
+  const yearActive = yearSliderPos !== null
+  filterToggle.classList.toggle('active-filter', anyLangOff || ratingAboveMin || yearActive)
 }
 
 function updateRatingUI() {
@@ -861,7 +872,10 @@ function handleSearch(query: string) {
   const normalized = query.trim()
   if (!searchReady || !normalized) return
   if (normalized.startsWith('/')) return
-  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, langEnabled })
+  const yearBounds = yearSliderPos !== null && titlesIndex
+    ? titlesIndex.yearBounds[yearSliderPos]
+    : null
+  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, langEnabled, yearBounds })
 }
 
 /** Handle worker responses */
@@ -1109,6 +1123,46 @@ function setupLangFilter() {
   }
 }
 
+function setYearSliderPos(pos: number | null) {
+  if (pos === yearSliderPos) return
+  yearSliderPos = pos
+  yearFilter.classList.toggle('off', pos === null)
+  if (pos !== null) yearSlider.value = String(pos)
+  updateFilterToggleIcon()
+  rebuildActiveIndex()
+  syncGenerationWorkerIndex()
+  enforceMinRating()
+  const q = searchInput.value.trim()
+  if (q) handleSearch(q)
+}
+
+function setupYearFilter() {
+  let dragging = false
+  let justEnabled = false
+
+  yearSlider.addEventListener('input', () => {
+    dragging = true
+    setYearSliderPos(Number(yearSlider.value))
+  })
+
+  yearSlider.addEventListener('pointerdown', () => {
+    dragging = false
+    if (yearSliderPos === null) {
+      setYearSliderPos(Number(yearSlider.value))
+      justEnabled = true
+    }
+  })
+
+  yearSlider.addEventListener('pointerup', () => {
+    if (justEnabled) { justEnabled = false; dragging = false; return }
+    if (!dragging && yearSliderPos !== null) {
+      const currentVal = Number(yearSlider.value)
+      if (currentVal === yearSliderPos) setYearSliderPos(null)
+    }
+    dragging = false
+  })
+}
+
 function setupFilterToggle() {
   filterToggle.addEventListener('pointerdown', (e) => {
     e.preventDefault() // prevent blurring search input
@@ -1353,6 +1407,7 @@ async function init() {
   setupSearch()
   setupRatingFilter()
   setupLangFilter()
+  setupYearFilter()
   setupFilterToggle()
   scheduleRender()
 }

@@ -36,6 +36,12 @@ def parse_args():
         default="sentence-transformers/all-MiniLM-L6-v2",
         help="SentenceTransformer model when --embed-backend sentence-transformers",
     )
+    parser.add_argument(
+        "--only",
+        choices=["embeddings", "metadata"],
+        default=None,
+        help="Build only embeddings.bin or metadata.bin (default: both)",
+    )
     parser.add_argument("--cache-prune", action="store_true", help="Remove stale cache ids")
     parser.add_argument("--force-full-recompute", action="store_true", help="Ignore cached embeddings")
     parser.add_argument(
@@ -155,6 +161,14 @@ def filter_movies(df, cache_scope: str):
 
         lang = str(row.get("original_language") or "").strip()[:2]
 
+        release_date = str(row.get("release_date") or "").strip()
+        year = 0
+        if len(release_date) >= 4:
+            try:
+                year = int(release_date[:4])
+            except ValueError:
+                pass
+
         filtered.append({
             "tmdb_id": tmdb_id,
             "title": title,
@@ -164,6 +178,7 @@ def filter_movies(df, cache_scope: str):
             "imdb_num": imdb_num,
             "rating_x10": rating_x10,
             "lang": lang,
+            "year": year,
         })
 
     print(f"Kept {len(filtered)} movies after filtering")
@@ -355,6 +370,7 @@ def write_metadata_binary(movies, output_path):
             f.write(struct.pack("<B", movie["rating_x10"]))
             lang = movie["lang"].encode("ascii", errors="replace")[:2].ljust(2, b'\x00')
             f.write(lang)
+            f.write(struct.pack("<H", movie["year"]))
             f.write(struct.pack("<B", len(title)))
             f.write(title)
 
@@ -379,19 +395,21 @@ def write_embeddings_binary(movies, quantized, output_path):
 
 def main():
     args = parse_args()
-    if should_force_full_recompute(args.full_recompute_every_weeks):
-        args.force_full_recompute = True
+    build_embed = args.only in (None, "embeddings")
+    build_meta = args.only in (None, "metadata")
 
-    if args.force_full_recompute:
-        print("Full recompute is enabled for this run")
-
-    if args.embed_backend == "ollama":
-        check_ollama()
+    if build_embed:
+        if should_force_full_recompute(args.full_recompute_every_weeks):
+            args.force_full_recompute = True
+        if args.force_full_recompute:
+            print("Full recompute is enabled for this run")
+        if args.embed_backend == "ollama":
+            check_ollama()
 
     output_dir = Path(__file__).parent.parent / "public" / "data"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    cache_scope = compute_cache_scope(args)
+    cache_scope = compute_cache_scope(args) if build_embed else ""
 
     df = load_dataset()
     movies = filter_movies(df, cache_scope)
@@ -399,19 +417,21 @@ def main():
         print("ERROR: No movies passed filters")
         return 1
 
-    cache = load_embedding_cache(cache_scope)
-    generate_embeddings(movies, cache, args, cache_scope)
+    if build_embed:
+        cache = load_embedding_cache(cache_scope)
+        generate_embeddings(movies, cache, args, cache_scope)
 
-    missing = [m["tmdb_id"] for m in movies if "embedding" not in m]
-    if missing:
-        print(f"ERROR: Missing embeddings for {len(missing)} movies")
-        return 1
+        missing = [m["tmdb_id"] for m in movies if "embedding" not in m]
+        if missing:
+            print(f"ERROR: Missing embeddings for {len(missing)} movies")
+            return 1
 
-    reduced = reduce_dimensions(movies, target_dim=16, verbose=not args.ci)
-    quantized = quantize(reduced)
+        reduced = reduce_dimensions(movies, target_dim=16, verbose=not args.ci)
+        quantized = quantize(reduced)
+        write_embeddings_binary(movies, quantized, output_dir / "embeddings.bin")
 
-    write_embeddings_binary(movies, quantized, output_dir / "embeddings.bin")
-    write_metadata_binary(movies, output_dir / "metadata.bin")
+    if build_meta:
+        write_metadata_binary(movies, output_dir / "metadata.bin")
 
     print(f"\nDone! Movies: {len(movies)}")
     return 0

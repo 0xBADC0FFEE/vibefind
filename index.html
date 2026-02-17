@@ -105,7 +105,7 @@
         transition: max-height 0.2s, opacity 0.15s;
       }
       #filter-rows.open {
-        max-height: 80px;
+        max-height: 120px;
         opacity: 1;
       }
       #lang-strip {
@@ -136,6 +136,76 @@
       }
       .lang-btn.off {
         opacity: 0.25;
+        filter: grayscale(1);
+      }
+      #year-filter {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        padding: 0 calc((100% - 192px) / 12);
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+      }
+      #year-filter .year-emoji {
+        font-size: 16px;
+        line-height: 1;
+        flex-shrink: 0;
+        width: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #year-slider {
+        flex: 1;
+        height: 28px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #year-slider::-webkit-slider-runnable-track {
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.15);
+      }
+      #year-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: rgba(173, 178, 188, 0.95);
+        margin-top: -7.5px;
+        border: none;
+        transition: background 0.16s, opacity 0.16s;
+      }
+      #year-slider::-moz-range-track {
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.15);
+        border: none;
+      }
+      #year-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: rgba(173, 178, 188, 0.95);
+        border: none;
+      }
+      #year-filter.off #year-slider::-webkit-slider-thumb {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      #year-filter.off #year-slider::-moz-range-thumb {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      #year-filter.off .year-emoji {
+        opacity: 0.35;
         filter: grayscale(1);
       }
       #rating-filter {
@@ -239,6 +309,11 @@
             <button class="lang-btn" type="button" data-group="4">🇰🇷</button>
             <button class="lang-btn" type="button" data-group="5">🌍</button>
           </div>
+        </div>
+        <div id="year-filter" class="off">
+          <span class="year-emoji">🦣</span>
+          <input id="year-slider" type="range" min="0" max="10" step="1" value="5" />
+          <span class="year-emoji">📱</span>
         </div>
         <div id="rating-filter">
           <div id="rating-strip">
