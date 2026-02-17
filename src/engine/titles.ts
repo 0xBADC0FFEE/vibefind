@@ -1,17 +1,24 @@
 export const LANG_GROUP_EN = 0
 export const LANG_GROUP_IN = 1
-export const LANG_GROUP_FR = 2
+export const LANG_GROUP_EU = 2
 export const LANG_GROUP_JA = 3
-export const LANG_GROUP_OTHER = 4
-export const LANG_GROUP_COUNT = 5
+export const LANG_GROUP_KO = 4
+export const LANG_GROUP_OTHER = 5
+export const LANG_GROUP_COUNT = 6
 
 export const INDIAN_LANGS = new Set(['hi', 'te', 'ta', 'ml', 'kn', 'bn', 'mr', 'pa'])
+export const EUROPEAN_LANGS = new Set([
+  'fr', 'de', 'es', 'it', 'pt', 'nl', 'sv', 'da', 'no', 'fi',
+  'pl', 'cs', 'ro', 'hu', 'el', 'tr', 'uk', 'bg', 'hr', 'sk',
+  'sl', 'lt', 'lv', 'et', 'ca', 'eu', 'gl',
+])
 
 export function langToGroup(code: string): number {
   if (code === 'en') return LANG_GROUP_EN
   if (INDIAN_LANGS.has(code)) return LANG_GROUP_IN
-  if (code === 'fr') return LANG_GROUP_FR
+  if (EUROPEAN_LANGS.has(code)) return LANG_GROUP_EU
   if (code === 'ja') return LANG_GROUP_JA
+  if (code === 'ko') return LANG_GROUP_KO
   return LANG_GROUP_OTHER
 }
 
@@ -20,7 +27,7 @@ export interface TitlesIndex {
   tmdbIds: Uint32Array
   imdbNums: Uint32Array
   ratings: Uint8Array  // IMDb rating × 10
-  langGroups: Uint8Array  // group IDs 0-4
+  langGroups: Uint8Array  // group IDs 0-5
   idToIdx: Map<number, number>  // tmdbId → index in titles/tmdbIds
 }
 
