@@ -4,6 +4,19 @@ on:
   schedule:
     - cron: '17 3 * * 0'
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Which binaries to regenerate'
+        type: choice
+        default: 'both'
+        options:
+          - both
+          - embeddings
+          - metadata
+      force_recompute:
+        description: 'Force full recompute (ignore cache age)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -41,11 +54,15 @@ jobs:
 
       - name: Generate embeddings + metadata
         run: |
-          python scripts/pipeline.py \
-            --ci \
-            --embed-backend sentence-transformers \
-            --cache-prune \
-            --full-recompute-every-weeks "${FULL_RECOMPUTE_EVERY_WEEKS}"
+          ARGS="--ci --embed-backend sentence-transformers --cache-prune"
+          ARGS+=" --full-recompute-every-weeks ${FULL_RECOMPUTE_EVERY_WEEKS}"
+          if [[ "${{ inputs.only }}" != "" && "${{ inputs.only }}" != "both" ]]; then
+            ARGS+=" --only ${{ inputs.only }}"
+          fi
+          if [[ "${{ inputs.force_recompute }}" == "true" ]]; then
+            ARGS+=" --force-full-recompute"
+          fi
+          python scripts/pipeline.py $ARGS
 
       - name: Publish bins to data-latest branch
         run: |
@@ -66,11 +83,18 @@ jobs:
           fi
 
           mkdir -p data
-          cp "${GITHUB_WORKSPACE}/public/data/embeddings.bin" data/embeddings.bin
-          cp "${GITHUB_WORKSPACE}/public/data/metadata.bin" data/metadata.bin
+          ONLY="${{ inputs.only }}"
+          if [[ "$ONLY" == "" || "$ONLY" == "both" ]]; then
+            cp "${GITHUB_WORKSPACE}/public/data/embeddings.bin" data/embeddings.bin
+            cp "${GITHUB_WORKSPACE}/public/data/metadata.bin" data/metadata.bin
+          elif [[ "$ONLY" == "embeddings" ]]; then
+            cp "${GITHUB_WORKSPACE}/public/data/embeddings.bin" data/embeddings.bin
+          elif [[ "$ONLY" == "metadata" ]]; then
+            cp "${GITHUB_WORKSPACE}/public/data/metadata.bin" data/metadata.bin
+          fi
 
           if [ -n "$(git status --porcelain)" ]; then
-            git add data/embeddings.bin data/metadata.bin
+            git add data/
             git commit -m "chore(data): weekly refresh bins"
             git push origin data-latest
           else
