@@ -10,8 +10,9 @@ npm run dev          # vite dev server (--host)
 npm run build        # tsc && vite build
 npm test             # node --test --experimental-strip-types src/**/*.test.ts
 
-# Python pipeline (requires .venv)
-python -m venv .venv && source .venv/bin/activate
+# Python pipeline (requires .venv + direnv)
+# One-time: brew install direnv, add hook to ~/.zshrc, then:
+python -m venv .venv && direnv allow
 python scripts/pipeline.py          # full pipeline
 python scripts/pipeline.py --skip-download  # reuse cached dataset
 ```
@@ -43,7 +44,7 @@ public/data/
 
 **Always:**
 - Install deps locally (`npm install`, never global)
-- Python work → activate `.venv` first
+- Python work → `.venv` auto-activates via direnv (run `direnv allow` once after clone)
 - Dataset analysis → use Python with `kagglehub` local cache (`~/.cache/kagglehub/`)
 
 **Never:**
