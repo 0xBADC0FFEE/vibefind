@@ -108,36 +108,6 @@
         max-height: 120px;
         opacity: 1;
       }
-      #lang-strip {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        margin-top: 8px;
-      }
-      .lang-btn {
-        width: 32px;
-        height: 32px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        border: 0;
-        background: none;
-        appearance: none;
-        -webkit-appearance: none;
-        padding: 0;
-        cursor: pointer;
-        outline: none;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-        transition: opacity 0.16s, filter 0.16s;
-      }
-      .lang-btn.off {
-        opacity: 0.25;
-        filter: grayscale(1);
-      }
       #year-filter {
         margin-top: 8px;
         display: flex;
@@ -286,16 +256,6 @@
         </button>
       </div>
       <div id="filter-rows">
-        <div id="lang-filter">
-          <div id="lang-strip">
-            <button class="lang-btn" type="button" data-group="0">🇺🇸</button>
-            <button class="lang-btn" type="button" data-group="1">🇮🇳</button>
-            <button class="lang-btn" type="button" data-group="2">🇪🇺</button>
-            <button class="lang-btn" type="button" data-group="3">🇯🇵</button>
-            <button class="lang-btn" type="button" data-group="4">🇰🇷</button>
-            <button class="lang-btn" type="button" data-group="5">🌍</button>
-          </div>
-        </div>
         <div id="year-filter">
           <span class="year-emoji">🦣</span>
           <input id="year-slider" type="range" min="0" max="10" step="1" value="5" />

@@ -11,7 +11,6 @@ import type { WaveState, OldCellData } from './canvas/wave.ts'
 import { createAnimation, animateViewport } from './canvas/animation.ts'
 import { createDebugOverlay, type DebugOverlay } from './debug/overlay.ts'
 import type { TitlesIndex } from './engine/titles.ts'
-import { LANG_GROUP_COUNT } from './engine/titles.ts'
 import { TOP_K, buildGenerationTarget, generateMovie } from './engine/generator.ts'
 import { calcMotionDiversityMetrics } from './engine/motion-profile.ts'
 import { buildRatingMorphPath, clampRatingX10 } from './ui/rating-morph.ts'
@@ -82,7 +81,6 @@ const ratingStars = Array.from(
 const searchHint = document.getElementById('search-hint') as HTMLDivElement
 const filterToggle = document.getElementById('filter-toggle') as HTMLButtonElement
 const filterRows = document.getElementById('filter-rows') as HTMLDivElement
-const langBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.lang-btn'))
 const yearSlider = document.getElementById('year-slider') as HTMLInputElement
 
 function computeVisibleCenterArea(pad = 0): { top: number; bottom: number; centerY: number } {
@@ -187,7 +185,6 @@ let ratingReplaceQueue: string[] = []
 let hintTimer = 0
 let isDraggingFilter = false
 let trackpadPanEnabled = false
-let langEnabled = new Uint8Array(LANG_GROUP_COUNT).fill(1)
 let yearSliderPos = 5  // 0-10, center (5) = all years
 let filtersVisible = false
 const filterSwapFx = new Map<string, FilterSwapFxEntry>()
@@ -212,7 +209,6 @@ function isTmdbAllowed(tmdbId: number): boolean {
   if (titlesIndex) {
     const idx = titlesIndex.idToIdx.get(tmdbId)
     if (idx !== undefined) {
-      if (!langEnabled[titlesIndex.langGroups[idx]]) return false
       const [minY, maxY] = titlesIndex.yearBounds[yearSliderPos]
       const y = titlesIndex.years[idx]
       if (y < minY || y > maxY) return false
@@ -372,10 +368,9 @@ function hasVisibleSwapFx(): boolean {
 }
 
 function updateFilterToggleIcon() {
-  const anyLangOff = langEnabled.some((v) => !v)
   const ratingAboveMin = minRatingX10 > RATING_MIN_X10
   const yearActive = yearSliderPos !== 5
-  filterToggle.classList.toggle('active-filter', anyLangOff || ratingAboveMin || yearActive)
+  filterToggle.classList.toggle('active-filter', ratingAboveMin || yearActive)
 }
 
 function updateRatingUI() {
@@ -387,23 +382,6 @@ function updateRatingUI() {
     star.classList.toggle('inactive', !active)
   }
   updateFilterToggleIcon()
-}
-
-function updateLangUI() {
-  for (const btn of langBtns) {
-    const g = Number(btn.dataset.group)
-    btn.classList.toggle('off', !langEnabled[g])
-  }
-  updateFilterToggleIcon()
-}
-
-function applyLangFilter() {
-  updateLangUI()
-  rebuildActiveIndex()
-  syncGenerationWorkerIndex()
-  enforceMinRating()
-  const q = searchInput.value.trim()
-  if (q) handleSearch(q)
 }
 
 function showHint(text: string) {
@@ -872,7 +850,7 @@ function handleSearch(query: string) {
   const yearBounds = titlesIndex
     ? titlesIndex.yearBounds[yearSliderPos]
     : null
-  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, langEnabled, yearBounds })
+  searchWorker.postMessage({ type: 'search', seq: ++searchSeq, query: normalized, minRatingX10, yearBounds })
 }
 
 /** Handle worker responses */
@@ -1067,57 +1045,6 @@ function setupRatingFilter() {
 
   searchPanel.addEventListener('pointerup', finishDrag)
   searchPanel.addEventListener('pointercancel', finishDrag)
-}
-
-function setupLangFilter() {
-  let soloGroup = -1
-  let longPressTimer = 0
-
-  for (const btn of langBtns) {
-    const g = Number(btn.dataset.group)
-
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault()
-      longPressTimer = window.setTimeout(() => {
-        longPressTimer = 0
-        // Long-press: solo/unsolo
-        if (soloGroup === g) {
-          // Unsolo: re-enable all
-          langEnabled.fill(1)
-          soloGroup = -1
-        } else {
-          // Solo: only this group
-          langEnabled.fill(0)
-          langEnabled[g] = 1
-          soloGroup = g
-        }
-        applyLangFilter()
-      }, 500)
-    })
-
-    btn.addEventListener('pointerup', () => {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer)
-        longPressTimer = 0
-        // Short tap: toggle
-        soloGroup = -1
-        langEnabled[g] = langEnabled[g] ? 0 : 1
-        // Prevent all-off
-        if (langEnabled.every((v) => !v)) {
-          langEnabled[g] = 1
-          return
-        }
-        applyLangFilter()
-      }
-    })
-
-    btn.addEventListener('pointercancel', () => {
-      clearTimeout(longPressTimer)
-      longPressTimer = 0
-    })
-
-    btn.addEventListener('contextmenu', (e) => e.preventDefault())
-  }
 }
 
 function setYearSliderPos(pos: number) {
@@ -1372,7 +1299,6 @@ async function init() {
 
   setupSearch()
   setupRatingFilter()
-  setupLangFilter()
   setupYearFilter()
   setupFilterToggle()
   scheduleRender()

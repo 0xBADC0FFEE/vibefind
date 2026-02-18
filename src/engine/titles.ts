@@ -120,7 +120,6 @@ function computeYearBounds(): [number, number][] {
 
 export interface SearchFilters {
   minRatingX10?: number
-  langEnabled?: Uint8Array
   yearBounds?: [number, number]  // [min, max] from slider
 }
 
@@ -135,7 +134,6 @@ function extractYear(query: string): [string, number | null] {
 
 function isAllowed(idx: TitlesIndex, i: number, filters: SearchFilters, exactYear: number | null): boolean {
   if (filters.minRatingX10 && idx.ratings[i] < filters.minRatingX10) return false
-  if (filters.langEnabled && !filters.langEnabled[idx.langGroups[i]]) return false
   if (filters.yearBounds) {
     const y = idx.years[i]
     if (y < filters.yearBounds[0] || y > filters.yearBounds[1]) return false
