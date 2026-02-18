@@ -121,6 +121,7 @@ src/
     gestures.ts          — pan/pinch/zoom with inertia + tap detection
     renderer.ts          — Canvas 2D render loop, culling
     animation.ts         — viewport lerp for search transitions
+    poster-loader.ts     — image cache keyed by grid cell, adaptive LOD
   engine/
     grid.ts              — cell storage, expansion, eviction
     generator.ts         — similarity + random algorithm
@@ -129,8 +130,6 @@ src/
     titles.ts            — metadata.bin parser (titles, IMDB IDs, ratings, years)
   debug/
     overlay.ts             — FPS/viewport/grid debug HUD (2-finger double-tap)
-  canvas/
-    poster-loader.ts     — image cache keyed by grid cell, adaptive LOD
 scripts/
   pipeline.py            — Kaggle → embeddings (Ollama or sentence-transformers) → UMAP → quantize → .bin
 ```

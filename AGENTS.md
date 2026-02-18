@@ -22,7 +22,7 @@ python scripts/pipeline.py --skip-download  # reuse cached dataset
 ```
 src/
   main.ts              # entry point
-  canvas/              # WebGL renderer, gestures, viewport, wave animation
+  canvas/              # Canvas 2D renderer, gestures, viewport, wave animation
   engine/              # embeddings, UMAP grid, search worker, title index
   ui/                  # search commands, rating morph, link intents
   debug/               # debug overlay
