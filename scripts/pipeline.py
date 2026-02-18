@@ -32,6 +32,23 @@ EUROPEAN_COUNTRIES = {
 JAPANESE_COUNTRIES = {"Japan"}
 KOREAN_COUNTRIES = {"South Korea"}
 
+# Broad type classification for supervised UMAP
+ANIME_LANGS = {"ja", "ko", "zh"}
+
+
+def infer_broad_type(genres: list[str], lang: str) -> str:
+    has_animation = "Animation" in genres
+    if has_animation and lang in ANIME_LANGS:
+        return "anime"
+    if has_animation:
+        return "animation"
+    if "Documentary" in genres:
+        return "documentary"
+    if "TV Movie" in genres:
+        return "tv"
+    return "live-action"
+
+
 COUNTRY_GROUP_MAP = {
     "indian": (INDIAN_COUNTRIES, "hi"),
     "european": (EUROPEAN_COUNTRIES, "fr"),
@@ -172,8 +189,8 @@ def should_force_full_recompute(every_weeks: int) -> bool:
 
 def compute_cache_scope(args) -> str:
     if args.embed_backend == "ollama":
-        return f"ollama:{OLLAMA_MODEL}+region-v1"
-    return f"sentence-transformers:{args.sentence_model}+region-v1"
+        return f"ollama:{OLLAMA_MODEL}+region-v1+genre-v1"
+    return f"sentence-transformers:{args.sentence_model}+region-v1+genre-v1"
 
 
 def hash_text(text: str, cache_scope: str) -> str:
@@ -272,10 +289,19 @@ def filter_movies(df, cache_scope: str):
         lang = str(row.get("original_language") or "").strip()[:2]
         lang = infer_lang_from_countries(lang, row.get("production_countries"))
 
+        # Parse genres and compute broad type
+        genres_raw = str(row.get("genres") or "").strip()
+        genres = [g.strip() for g in genres_raw.split(",") if g.strip()]
+        broad_type = infer_broad_type(genres, lang)
+
+        # Genre prefix (exclude "TV Movie" — not a real genre name)
+        genre_names = [g for g in genres if g != "TV Movie"]
+        genre_prefix = ", ".join(genre_names) if genre_names else ""
+
         region = infer_region(lang, row.get("production_countries"))
         lang_name = LANG_NAMES.get(lang, lang.upper())
         prefix = f"{region} {lang_name} film" if region else f"{lang_name} film"
-        text = f"{prefix}. {text}"
+        text = f"{prefix}. {genre_prefix}. {text}" if genre_prefix else f"{prefix}. {text}"
 
         release_date = str(row.get("release_date") or "").strip()
         year = 0
@@ -295,6 +321,7 @@ def filter_movies(df, cache_scope: str):
             "rating_x10": rating_x10,
             "lang": lang,
             "year": year,
+            "broad_type": broad_type,
         })
 
     print(f"Kept {len(filtered)} movies after filtering")
@@ -450,15 +477,24 @@ def reduce_dimensions(movies, target_dim=16, verbose=False):
     embeddings = np.stack([m["embedding"] for m in movies])
     print(f"Running UMAP {embeddings.shape[1]}-dim -> {target_dim}-dim...")
 
+    # Encode broad_type as integer labels for supervised UMAP
+    type_labels = [m["broad_type"] for m in movies]
+    unique_types = sorted(set(type_labels))
+    type_to_int = {t: i for i, t in enumerate(unique_types)}
+    y = np.array([type_to_int[t] for t in type_labels])
+    print(f"Supervised UMAP with {len(unique_types)} broad types: {unique_types}")
+
     reducer = umap.UMAP(
         n_components=target_dim,
         metric="cosine",
         n_neighbors=30,
         min_dist=0.1,
         random_state=42,
+        target_weight=0.3,
+        target_metric="categorical",
         verbose=verbose,
     )
-    reduced = reducer.fit_transform(embeddings)
+    reduced = reducer.fit_transform(embeddings, y=y)
     print(f"UMAP done. Shape: {reduced.shape}")
     return reduced
 
