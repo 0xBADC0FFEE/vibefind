@@ -110,8 +110,8 @@ export function setupGestures(
 
       vp.offsetX += dx
       vp.offsetY += dy
-      gs.velocityX = dx
-      gs.velocityY = dy
+      gs.velocityX = gs.velocityX * 0.6 + dx * 0.4
+      gs.velocityY = gs.velocityY * 0.6 + dy * 0.4
       gs.lastX = x
       gs.lastY = y
       onUpdate()
@@ -167,8 +167,8 @@ export function setupGestures(
     const dy = e.clientY - gs.lastY
     vp.offsetX += dx
     vp.offsetY += dy
-    gs.velocityX = dx
-    gs.velocityY = dy
+    gs.velocityX = gs.velocityX * 0.6 + dx * 0.4
+    gs.velocityY = gs.velocityY * 0.6 + dy * 0.4
     gs.lastX = e.clientX
     gs.lastY = e.clientY
     onUpdate()

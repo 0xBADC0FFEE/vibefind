@@ -631,7 +631,7 @@ function scheduleRender(immediate?: boolean) {
 
 function update() {
   const now = performance.now()
-  const metrics = calcMotionDiversityMetrics(gs.velocityX, gs.velocityY, gs.active)
+  const metrics = calcMotionDiversityMetrics(gs.velocityX, gs.velocityY)
   const speed = metrics.speed
   const isInMotion = gs.active || speed > MOTION_VELOCITY_THRESHOLD
   if (isInMotion) {
@@ -650,7 +650,8 @@ function update() {
 
   let n = 0
   if (!fillPending) {
-    if (gs.active) {
+    const isCoasting = !gs.active && metrics.speed > 2
+    if (gs.active || isCoasting) {
       queueWorkerFill(getVisibleRange(vp), GESTURE_VISIBLE_FILL, metrics.noiseFactor, metrics.randomChance)
       queueWorkerFill(getVisibleRange(vp, GESTURE_BUFFER), GESTURE_FILL, metrics.noiseFactor, metrics.randomChance)
     } else {

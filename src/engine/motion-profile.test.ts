@@ -7,28 +7,25 @@ function assertClose(actual: number, expected: number, eps = 1e-9) {
 }
 
 test('speed=0 maps to min noise/random values', () => {
-  const m = calcMotionDiversityMetrics(0, 0, false)
+  const m = calcMotionDiversityMetrics(0, 0)
   assert.equal(m.speed, 0)
   assert.equal(m.t, 0)
   assertClose(m.noiseFactor, 0.08)
   assertClose(m.randomChance, 0.05)
-  assert.equal(m.diversityEligible, false)
 })
 
 test('speed>=25 clamps t to 1 and maxes noise/random values', () => {
-  const m = calcMotionDiversityMetrics(25, 0, true)
+  const m = calcMotionDiversityMetrics(25, 0)
   assert.equal(m.speed, 25)
   assert.equal(m.t, 1)
-  assertClose(m.noiseFactor, 0.8)
-  assertClose(m.randomChance, 0.6)
-  assert.equal(m.diversityEligible, true)
+  assertClose(m.noiseFactor, 0.40)
+  assertClose(m.randomChance, 0.30)
 })
 
 test('intermediate speed uses linear interpolation', () => {
-  const m = calcMotionDiversityMetrics(12.5, 0, true)
+  const m = calcMotionDiversityMetrics(12.5, 0)
   assert.equal(m.speed, 12.5)
   assertClose(m.t, 0.5)
-  assertClose(m.noiseFactor, 0.44)
-  assertClose(m.randomChance, 0.325)
-  assert.equal(m.diversityEligible, true)
+  assertClose(m.noiseFactor, 0.24)
+  assertClose(m.randomChance, 0.175)
 })

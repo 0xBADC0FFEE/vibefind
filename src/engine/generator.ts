@@ -56,6 +56,7 @@ export function buildGenerationTarget(
 
   // Diversity injection: use neighbor blend with high noise instead of pure random
   const diversityMode = !coherent && Math.random() < (randomChance ?? RANDOM_CHANCE)
+  // diversityMode: don't bail — fall through to build target with 4x noise
 
   // Weighted average embedding
   const target = new Float32Array(EMBED_DIM)
@@ -110,7 +111,7 @@ export function buildGenerationTarget(
 
   // Add noise (reduced in coherent mode, amplified in diversity mode)
   const baseNoise = noiseFactor ?? NOISE_FACTOR
-  const noise = coherent ? 0.15 : diversityMode ? baseNoise * 4 : baseNoise
+  const noise = coherent ? 0.15 : diversityMode ? baseNoise * 3 : baseNoise
   lastGenStats.neighborCount = neighbors.length
   lastGenStats.noise = noise
   lastGenStats.diversityMode = diversityMode
@@ -144,7 +145,8 @@ export function generateMovie(
     return pickRandom(index, grid.onScreen, isAllowed)
   }
 
-  const candidates = findTopK(index, generationTarget.target, TOP_K, grid.onScreen, isAllowed)
+  const k = generationTarget.diversityMode ? TOP_K * 5 : TOP_K
+  const candidates = findTopK(index, generationTarget.target, k, grid.onScreen, isAllowed)
   if (candidates.length === 0) return null
 
   // Weighted random pick: favor closer matches
