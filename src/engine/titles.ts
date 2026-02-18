@@ -45,6 +45,7 @@ export interface TitlesIndex {
   tmdbIds: Uint32Array
   imdbNums: Uint32Array
   ratings: Uint8Array  // IMDb rating × 10
+  votes: Uint32Array   // IMDb vote count
   langGroups: Uint8Array  // group IDs 0-5
   years: Uint16Array
   yearBounds: [number, number][]  // 11 pairs [minYear, maxYear], one per slider position
@@ -58,6 +59,7 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
   const ids: number[] = []
   const imdbNumsArr: number[] = []
   const ratingsArr: number[] = []
+  const votesArr: number[] = []
   const langGroupsArr: number[] = []
   const yearsArr: number[] = []
   const idToIdx = new Map<number, number>()
@@ -73,6 +75,9 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
 
     const rating = view.getUint8(offset)
     offset += 1
+
+    const votes = view.getUint32(offset, true)
+    offset += 4
 
     // 2-byte lang code
     const langB0 = view.getUint8(offset)
@@ -97,6 +102,7 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
     ids.push(tmdbId)
     imdbNumsArr.push(imdbNum)
     ratingsArr.push(rating)
+    votesArr.push(votes)
     idToIdx.set(tmdbId, i)
   }
 
@@ -107,6 +113,7 @@ export function parseTitles(buffer: ArrayBuffer): TitlesIndex {
     tmdbIds: new Uint32Array(ids),
     imdbNums: new Uint32Array(imdbNumsArr),
     ratings: new Uint8Array(ratingsArr),
+    votes: new Uint32Array(votesArr),
     langGroups: new Uint8Array(langGroupsArr),
     years,
     yearBounds: computeYearBounds(),

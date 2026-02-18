@@ -255,6 +255,18 @@ function pickWeightedTmdbId(tmdbIds: number[]): number | null {
   return tmdbIds[0] ?? null
 }
 
+function pickRandomHighRated(): MovieEntry | null {
+  if (!titlesIndex) return null
+  const candidates: MovieEntry[] = []
+  for (const entry of activeIndex.movies) {
+    const idx = titlesIndex.idToIdx.get(entry.tmdbId)
+    if (idx !== undefined && titlesIndex.ratings[idx] >= 80 && titlesIndex.votes[idx] >= 100_000)
+      candidates.push(entry)
+  }
+  if (!candidates.length) return null
+  return candidates[Math.floor(Math.random() * candidates.length)]
+}
+
 function pickRandomActiveEntry(): MovieEntry | null {
   const movies = activeIndex.movies
   if (movies.length === 0) return null
@@ -1202,7 +1214,7 @@ async function init() {
   rebuildActiveIndex()
   syncGenerationWorkerIndex()
 
-  focusOn(0, 0)
+  focusOn(0, 0, pickRandomHighRated() ?? undefined)
   setupGestures(canvas, vp, gs, scheduleRender, openMovieLink)
 
   // Long-press (500ms) -> refresh grid around pressed card
