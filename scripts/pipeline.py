@@ -39,6 +39,69 @@ COUNTRY_GROUP_MAP = {
     "korean": (KOREAN_COUNTRIES, "ko"),
 }
 
+# Region/language prefix for embedding text
+LATIN_AMERICAN_COUNTRIES = {
+    "Mexico", "Brazil", "Argentina", "Colombia", "Chile", "Peru",
+    "Venezuela", "Cuba", "Uruguay", "Paraguay", "Bolivia",
+    "Ecuador", "Dominican Republic", "Guatemala", "Honduras",
+    "Costa Rica", "Panama", "Puerto Rico", "El Salvador", "Nicaragua",
+}
+IBERIAN_COUNTRIES = {"Spain", "Portugal"}
+
+LANG_TO_REGION = {
+    "en": "Anglo",
+    "hi": "South Asian", "te": "South Asian", "ta": "South Asian",
+    "ml": "South Asian", "kn": "South Asian", "bn": "South Asian",
+    "mr": "South Asian", "pa": "South Asian",
+    "fr": "European", "de": "European", "it": "European",
+    "nl": "European", "sv": "European", "da": "European",
+    "no": "European", "fi": "European", "pl": "European",
+    "cs": "European", "ro": "European", "hu": "European",
+    "el": "European", "bg": "European", "hr": "European",
+    "sk": "European", "sl": "European",
+    "ja": "East Asian", "ko": "East Asian", "zh": "East Asian",
+    "ar": "Middle Eastern", "fa": "Middle Eastern", "tr": "Middle Eastern",
+    "th": "Southeast Asian", "id": "Southeast Asian", "tl": "Southeast Asian",
+    "ms": "Southeast Asian", "vi": "Southeast Asian",
+    "ru": "Russian", "uk": "Ukrainian",
+}
+
+LANG_NAMES = {
+    "en": "English", "hi": "Hindi", "te": "Telugu", "ta": "Tamil",
+    "ml": "Malayalam", "kn": "Kannada", "bn": "Bengali",
+    "mr": "Marathi", "pa": "Punjabi",
+    "fr": "French", "de": "German", "it": "Italian",
+    "nl": "Dutch", "sv": "Swedish", "da": "Danish",
+    "no": "Norwegian", "fi": "Finnish", "pl": "Polish",
+    "cs": "Czech", "ro": "Romanian", "hu": "Hungarian",
+    "el": "Greek", "bg": "Bulgarian", "hr": "Croatian",
+    "sk": "Slovak", "sl": "Slovenian",
+    "ja": "Japanese", "ko": "Korean", "zh": "Chinese",
+    "ar": "Arabic", "fa": "Persian", "tr": "Turkish",
+    "th": "Thai", "id": "Indonesian", "tl": "Filipino",
+    "ms": "Malay", "vi": "Vietnamese",
+    "ru": "Russian", "uk": "Ukrainian",
+    "es": "Spanish", "pt": "Portuguese",
+}
+
+def infer_region(lang: str, production_countries_str) -> str:
+    """Infer region from language, disambiguating es/pt via production countries."""
+    import pandas as pd
+    if lang in ("es", "pt"):
+        countries = []
+        if isinstance(production_countries_str, str) and not pd.isna(production_countries_str):
+            countries = [c.strip() for c in production_countries_str.split(",") if c.strip()]
+        has_latam = any(c in LATIN_AMERICAN_COUNTRIES for c in countries)
+        has_iberian = any(c in IBERIAN_COUNTRIES for c in countries)
+        if has_latam and not has_iberian:
+            return "Latin American"
+        if has_iberian and not has_latam:
+            return "European"
+        # Default: es→European, pt→Latin American
+        return "European" if lang == "es" else "Latin American"
+    return LANG_TO_REGION.get(lang, "")
+
+
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "nomic-embed-text-v2-moe"
 BATCH_SIZE = 64
@@ -109,8 +172,8 @@ def should_force_full_recompute(every_weeks: int) -> bool:
 
 def compute_cache_scope(args) -> str:
     if args.embed_backend == "ollama":
-        return f"ollama:{OLLAMA_MODEL}"
-    return f"sentence-transformers:{args.sentence_model}"
+        return f"ollama:{OLLAMA_MODEL}+region-v1"
+    return f"sentence-transformers:{args.sentence_model}+region-v1"
 
 
 def hash_text(text: str, cache_scope: str) -> str:
@@ -208,6 +271,11 @@ def filter_movies(df, cache_scope: str):
 
         lang = str(row.get("original_language") or "").strip()[:2]
         lang = infer_lang_from_countries(lang, row.get("production_countries"))
+
+        region = infer_region(lang, row.get("production_countries"))
+        lang_name = LANG_NAMES.get(lang, lang.upper())
+        prefix = f"{region} {lang_name} film" if region else f"{lang_name} film"
+        text = f"{prefix}. {text}"
 
         release_date = str(row.get("release_date") or "").strip()
         year = 0
