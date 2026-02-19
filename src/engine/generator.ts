@@ -111,7 +111,7 @@ export function buildGenerationTarget(
 
   // Add noise (reduced in coherent mode, amplified in diversity mode)
   const baseNoise = noiseFactor ?? NOISE_FACTOR
-  const noise = coherent ? 0.15 : diversityMode ? baseNoise * 3 : baseNoise
+  const noise = coherent ? 0.02 : diversityMode ? baseNoise * 3 : baseNoise
   lastGenStats.neighborCount = neighbors.length
   lastGenStats.noise = noise
   lastGenStats.diversityMode = diversityMode
