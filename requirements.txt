@@ -1,0 +1,11 @@
+# Data pipeline deps (scripts/pipeline.py). Portable: no hashes / no platform-locked
+# transitive pins, so it installs on macOS (local) and linux (CI) alike — pip selects the
+# right wheel per platform. Freshness of unpinned transitives is guarded in CI by
+# `pip install --uploaded-prior-to P7D` (7-day cooldown), which would have blocked the
+# kagglesdk 0.1.27 release that broke kagglehub 1.0.x.
+kagglehub<1.0        # 1.0.x imports get_web_endpoint, removed from published kagglesdk
+pandas
+numpy
+umap-learn
+requests
+sentence-transformers

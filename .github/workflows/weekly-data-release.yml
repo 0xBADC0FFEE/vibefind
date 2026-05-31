@@ -50,7 +50,10 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install kagglehub pandas numpy umap-learn requests sentence-transformers
+          # Install from requirements.txt with a 7-day cooldown: pip ignores any release
+          # uploaded in the last week, so a freshly-broken transitive dep (e.g. the kagglesdk
+          # 0.1.27 drop that broke kagglehub) can't sneak into the scheduled run.
+          pip install --uploaded-prior-to P7D -r requirements.txt
 
       - name: Generate embeddings + metadata
         run: |
